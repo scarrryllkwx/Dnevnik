@@ -9,6 +9,13 @@ const ROLE_STATE_KEY = "localDiary:roles";
 const ENTRIES_KEY = "localDiary:entries";
 const NOTIFIED_KEY = "localDiary:notified";
 
+// Облачная синхронизация (Firebase). Если не настроено — работаем на localStorage.
+let cloudEnabled = false;
+let firebaseDb = null;
+let entriesCache = [];
+let teacherEmailCache = null;
+let firstEntriesSnapshot = true;
+
 const loginForm = document.querySelector("#loginForm");
 const entryForm = document.querySelector("#entryForm");
 const entriesBody = document.querySelector("#entriesBody");
@@ -46,14 +53,16 @@ function getAccountByEmail(email) {
 }
 
 function getTeacherEmail() {
-  const stored = localStorage.getItem(ROLE_STATE_KEY);
+  const stored = cloudEnabled ? teacherEmailCache : localStorage.getItem(ROLE_STATE_KEY);
   const storedTeacher = stored && getAccountByEmail(stored);
 
   if (storedTeacher) {
     return storedTeacher.email;
   }
 
-  localStorage.setItem(ROLE_STATE_KEY, DEFAULT_TEACHER_EMAIL);
+  if (!cloudEnabled) {
+    localStorage.setItem(ROLE_STATE_KEY, DEFAULT_TEACHER_EMAIL);
+  }
   return DEFAULT_TEACHER_EMAIL;
 }
 
@@ -62,7 +71,11 @@ function setTeacherEmail(email) {
 
   if (!account) return;
 
-  localStorage.setItem(ROLE_STATE_KEY, account.email);
+  if (cloudEnabled) {
+    firebaseDb.ref("teacherEmail").set(account.email).catch((error) => console.warn("teacherEmail set failed", error));
+  } else {
+    localStorage.setItem(ROLE_STATE_KEY, account.email);
+  }
   syncSessionRole();
 }
 
@@ -88,27 +101,97 @@ function getStudents() {
   return ACCOUNTS.filter((account) => normalize(account.email) !== normalize(teacherEmail));
 }
 
+function normalizeEntry(entry) {
+  return {
+    id: entry.id || crypto.randomUUID(),
+    studentEmail: entry.studentEmail || "",
+    subject: entry.subject || "",
+    homework: entry.homework || "",
+    comment: entry.comment || "",
+    assignmentDate: entry.assignmentDate || "",
+    deadline: entry.deadlineTime || (entry.deadline && entry.deadline.includes(":") ? entry.deadline : ""),
+    issuedAt: entry.issuedAt || "",
+    grade: entry.grade || "",
+  };
+}
+
 function loadEntries() {
-  try {
-    const entries = JSON.parse(localStorage.getItem(ENTRIES_KEY)) || [];
-    return entries.map((entry) => ({
-      id: entry.id || crypto.randomUUID(),
-      studentEmail: entry.studentEmail || "",
-      subject: entry.subject || "",
-      homework: entry.homework || "",
-      comment: entry.comment || "",
-      assignmentDate: entry.assignmentDate || "",
-      deadline: entry.deadlineTime || (entry.deadline && entry.deadline.includes(":") ? entry.deadline : ""),
-      issuedAt: entry.issuedAt || "",
-      grade: entry.grade || "",
-    }));
-  } catch {
-    return [];
+  let list;
+
+  if (cloudEnabled) {
+    list = entriesCache;
+  } else {
+    try {
+      list = JSON.parse(localStorage.getItem(ENTRIES_KEY)) || [];
+    } catch {
+      list = [];
+    }
   }
+
+  const array = Array.isArray(list) ? list : Object.values(list || {});
+  return array
+    .filter(Boolean)
+    .map(normalizeEntry)
+    .sort((a, b) => (b.issuedAt || "").localeCompare(a.issuedAt || ""));
 }
 
 function saveEntries(entries) {
+  if (cloudEnabled) {
+    const map = {};
+    entries.forEach((entry) => {
+      if (entry && entry.id) map[entry.id] = entry;
+    });
+    firebaseDb.ref("entries").set(map).catch((error) => console.warn("entries set failed", error));
+    return;
+  }
+
   localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+}
+
+// ---------- Firebase ----------
+function initCloud() {
+  if (typeof firebase === "undefined" || typeof FIREBASE_CONFIG === "undefined") return false;
+
+  const config = FIREBASE_CONFIG;
+  const notConfigured = !config || !config.databaseURL || String(config.apiKey || "").startsWith("ВСТАВЬТЕ");
+  if (notConfigured) return false;
+
+  try {
+    firebase.initializeApp(config);
+    firebaseDb = firebase.database();
+    cloudEnabled = true;
+    return true;
+  } catch (error) {
+    console.warn("Firebase init failed — работаем локально", error);
+    return false;
+  }
+}
+
+function subscribeCloud() {
+  firebaseDb.ref("entries").on("value", (snapshot) => {
+    const value = snapshot.val() || {};
+    entriesCache = Array.isArray(value) ? value.filter(Boolean) : Object.values(value);
+
+    const active = document.activeElement;
+    const isEditingField =
+      entriesBody && active && entriesBody.contains(active) && /INPUT|TEXTAREA/.test(active.tagName);
+
+    if (!isEditingField) renderEntries();
+
+    if (firstEntriesSnapshot) {
+      firstEntriesSnapshot = false;
+      initStudentNotifications();
+    } else {
+      syncStudentNotifications();
+    }
+  });
+
+  firebaseDb.ref("teacherEmail").on("value", (snapshot) => {
+    teacherEmailCache = snapshot.val() || null;
+    renderDiaryMode();
+    renderUserName();
+    renderEntries();
+  });
 }
 
 function requireAuth() {
@@ -841,6 +924,9 @@ if (loginForm) {
 }
 
 if (entryForm) {
+  const usingCloud = initCloud();
+  if (usingCloud) subscribeCloud();
+
   renderDiaryMode();
   renderUserName();
   entryForm.addEventListener("submit", saveEntry);
@@ -858,8 +944,8 @@ if (entryForm) {
   transferTeacherButton.addEventListener("click", transferTeacherRole);
   renderEntries();
 
-  // Уведомления
-  initStudentNotifications();
+  // Уведомления. В облачном режиме базовую отметку делает первый снимок данных (subscribeCloud).
+  if (!usingCloud) initStudentNotifications();
   updateNotifyButton();
 
   const notifyButton = document.querySelector("#notifyButton");
