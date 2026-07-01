@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Вход в дневник</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="stylesheet" href="styles.css?v=20260630-29" />
+  </head>
+  <body class="auth-page">
+    <div class="aurora" aria-hidden="true">
+      <span class="aurora__blob blob--teal"></span>
+      <span class="aurora__blob blob--mint"></span>
+      <span class="aurora__blob blob--lav"></span>
+      <span class="aurora__blob blob--blue"></span>
+      <span class="aurora__grain"></span>
+    </div>
+    <main class="auth-shell">
+      <section class="auth-panel" aria-labelledby="auth-title">
+        <img class="auth-logo" src="assets/logo.svg?v=20260630-29" alt="Дневник" />
+        <p class="eyebrow">Локальный дневник</p>
+        <h1 id="auth-title">Войти</h1>
+        <p class="muted">Только ваш email и пароль. Данные дневника сохраняются в этом браузере.</p>
+
+        <form class="auth-form" id="loginForm" autocomplete="on">
+          <label>
+            <span>Email</span>
+            <input id="email" type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
+          </label>
+          <label>
+            <span>Пароль</span>
+            <input id="password" type="password" name="password" placeholder="Введите пароль" autocomplete="current-password" required />
+          </label>
+          <p class="form-error" id="errorMessage" role="alert"></p>
+          <button class="primary-button" type="submit">Открыть дневник</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="accounts.js?v=20260630-29"></script>
+    <script src="app.js?v=20260630-29"></script>
+  </body>
+</html>

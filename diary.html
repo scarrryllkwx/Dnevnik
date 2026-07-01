@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Мой дневник</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="stylesheet" href="styles.css?v=20260630-29" />
+  </head>
+  <body class="diary-page">
+    <div class="aurora" aria-hidden="true">
+      <span class="aurora__blob blob--teal"></span>
+      <span class="aurora__blob blob--mint"></span>
+      <span class="aurora__blob blob--lav"></span>
+      <span class="aurora__blob blob--blue"></span>
+      <span class="aurora__grain"></span>
+    </div>
+    <header class="topbar">
+      <a class="logo" href="diary.html" aria-label="Дневник">
+        <img class="logo-image" src="assets/logo.svg?v=20260630-29" alt="Дневник" />
+      </a>
+      <div class="topbar-actions">
+        <button class="ghost-button" id="notifyButton" type="button" hidden>
+          <span class="notify-dot" aria-hidden="true"></span>Включить уведомления
+        </button>
+        <button class="ghost-button" id="logoutButton" type="button">Выйти</button>
+      </div>
+    </header>
+
+    <main class="diary-layout">
+      <section class="diary-hero" aria-labelledby="diary-title">
+        <p class="eyebrow" id="userLabel">Учебная неделя</p>
+        <h1 id="diary-title">Домашние задания и оценки</h1>
+      </section>
+
+      <section class="teacher-tools" id="teacherTools" aria-label="Панель учителя" hidden>
+        <div class="teacher-transfer">
+          <select id="transferTeacherSelect" aria-label="Новый учитель"></select>
+          <button class="ghost-button" id="transferTeacherButton" type="button">Передать роль</button>
+        </div>
+      </section>
+
+      <section class="entry-composer" aria-label="Новая запись">
+        <form id="entryForm" class="entry-form">
+          <label class="student-field">
+            <span>Ученик</span>
+            <select id="studentSelect" required></select>
+          </label>
+          <label class="date-field">
+            <span>Дата выполнения</span>
+            <input id="assignmentDateInput" type="hidden" required />
+            <button class="date-trigger" id="assignmentDateButton" type="button" data-date-target="assignmentDateInput"></button>
+          </label>
+          <label class="deadline-field">
+            <span>Дедлайн</span>
+            <input id="deadlineInput" type="time" step="60" />
+          </label>
+          <label class="homework-field">
+            <span>Домашнее задание</span>
+            <input id="homeworkInput" type="text" placeholder="Параграф, упражнение, проект..." required />
+          </label>
+          <label class="comment-field">
+            <span>Комментарий</span>
+            <input id="commentInput" type="text" placeholder="Можно оставить пустым" />
+          </label>
+          <button class="primary-button compact" id="submitEntryButton" type="submit">Выдать задание</button>
+          <button class="cancel-button" id="cancelEditButton" type="button" hidden>Отмена</button>
+        </form>
+      </section>
+
+      <section class="diary-table-wrap" aria-label="Записи дневника">
+        <table class="diary-table">
+          <thead>
+            <tr>
+              <th class="student-heading">Ученик</th>
+              <th class="issued-heading">Выдано</th>
+              <th class="homework-heading">Домашнее задание</th>
+              <th class="deadline-heading">Дедлайн</th>
+              <th class="grade-heading">Оценка</th>
+              <th class="action-heading"> </th>
+            </tr>
+          </thead>
+          <tbody id="entriesBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState">
+          <strong>Пока пусто</strong>
+          <span>Добавьте первый предмет, задание и оценку.</span>
+        </div>
+      </section>
+    </main>
+
+    <script src="accounts.js?v=20260630-29"></script>
+    <script src="app.js?v=20260630-29"></script>
+  </body>
+</html>
