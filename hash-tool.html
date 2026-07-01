@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Хеш пароля</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="stylesheet" href="styles.css?v=20260630-28" />
+  </head>
+  <body class="auth-page">
+    <div class="aurora" aria-hidden="true">
+      <span class="aurora__blob blob--teal"></span>
+      <span class="aurora__blob blob--mint"></span>
+      <span class="aurora__blob blob--lav"></span>
+      <span class="aurora__blob blob--blue"></span>
+      <span class="aurora__grain"></span>
+    </div>
+    <main class="auth-shell">
+      <section class="auth-panel" aria-labelledby="hash-title">
+        <p class="eyebrow">Локальный дневник</p>
+        <h1 id="hash-title">Хеш пароля</h1>
+        <p class="muted">Введите пароль, скопируйте SHA-256-хеш и вставьте его в <code>accounts.js</code> как <code>passwordHash</code>.</p>
+
+        <form class="auth-form" id="hashForm" autocomplete="off">
+          <label>
+            <span>Пароль</span>
+            <input id="passwordInput" type="text" placeholder="Введите пароль" required />
+          </label>
+          <button class="primary-button" type="submit">Посчитать хеш</button>
+        </form>
+
+        <label style="margin-top: 16px; display: block;">
+          <span>passwordHash</span>
+          <input id="hashOutput" type="text" readonly placeholder="Здесь появится хеш" />
+        </label>
+        <p class="muted" id="hashStatus" role="status"></p>
+      </section>
+    </main>
+
+    <script>
+      const form = document.querySelector("#hashForm");
+      const passwordInput = document.querySelector("#passwordInput");
+      const hashOutput = document.querySelector("#hashOutput");
+      const hashStatus = document.querySelector("#hashStatus");
+
+      async function sha256Hex(value) {
+        const bytes = new TextEncoder().encode(value);
+        const digest = await crypto.subtle.digest("SHA-256", bytes);
+        return Array.from(new Uint8Array(digest))
+          .map((byte) => byte.toString(16).padStart(2, "0"))
+          .join("");
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const hash = await sha256Hex(passwordInput.value);
+        hashOutput.value = hash;
+        try {
+          await navigator.clipboard.writeText(hash);
+          hashStatus.textContent = "Хеш посчитан и скопирован в буфер обмена.";
+        } catch {
+          hashStatus.textContent = "Хеш посчитан. Скопируйте его вручную.";
+        }
+      });
+    </script>
+  </body>
+</html>
