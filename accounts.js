@@ -9,8 +9,8 @@ const ACCOUNTS = [
   { name: "Володя", email: "vovanchik043@mail.ru", passwordHash: "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c" },
   { name: "Арина", email: "a.filippowa2010@yandex.ru", passwordHash: "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c" },
   { name: "Алена", email: "aliena.mishina34@gmail.com", passwordHash: "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c" },
-  { name: "klauz7", email: "klauz7@yandex.ru", passwordHash: "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c" },
-  { name: "bassicsplace", email: "bassicsplace@yandex.ru", passwordHash: "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c" },
+  { name: "Миша", email: "klauz7@yandex.ru", passwordHash: "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c" },
+  { name: "Олег", email: "bassicsplace@yandex.ru", passwordHash: "0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c" },
 ];
 
 const DEFAULT_TEACHER_EMAIL = "aliena.mishina34@gmail.com";
