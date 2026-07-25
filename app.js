@@ -55,6 +55,7 @@ let lastRankingSignature = "";
 const customSelectControls = new Map();
 const customTimeControls = new Map();
 const VOTING_ROOT = "teacherVotes";
+const VOTING_LAUNCH_WEEK_KEY = "2026-07-27";
 const VOTING_START_MINUTES = 9 * 60;
 const VOTING_END_MINUTES = 11 * 60;
 let activeVotingWeekKey = "";
@@ -522,6 +523,10 @@ function getVotingSchedule(date = new Date()) {
   };
 }
 
+function isVotingWeekEnabled(schedule) {
+  return Boolean(schedule?.weekKey && schedule.weekKey >= VOTING_LAUNCH_WEEK_KEY);
+}
+
 function safeFirebaseKey(value) {
   return String(value || "").replace(/[.#$\[\]/]/g, "_");
 }
@@ -622,7 +627,7 @@ function ensureVotingResultModal() {
 
 function showVotingResultModal(schedule) {
   const winner = getAccountByEmail(weeklyVotingState?.winnerEmail || "");
-  if (!winner || hasSeenVotingResult(schedule.weekKey)) return;
+  if (!isVotingWeekEnabled(schedule) || !winner || hasSeenVotingResult(schedule.weekKey)) return;
 
   const modal = ensureVotingResultModal();
   const isWinner = normalize(winner.email) === normalize(getCurrentEmail());
@@ -733,6 +738,7 @@ function chooseRandomWinner(state) {
 }
 
 async function finalizeWeeklyVoting(schedule) {
+  if (!isVotingWeekEnabled(schedule)) return;
   const allVotesReceived = getValidVoterCount(weeklyVotingState) >= ACCOUNTS.length;
   const finalizedEarly = schedule.isOpen && allVotesReceived;
   if (!cloudEnabled || !activeVotingRef || (!schedule.isEnded && !finalizedEarly) || weeklyVotingState?.winnerEmail) return;
@@ -756,6 +762,11 @@ async function finalizeWeeklyVoting(schedule) {
 function handleVotingSnapshot(snapshot) {
   weeklyVotingState = snapshot.val() || {};
   const schedule = getVotingSchedule();
+  if (!isVotingWeekEnabled(schedule)) {
+    closeVotingModal();
+    closeVotingResultModal(false);
+    return;
+  }
   const modal = document.querySelector("#weeklyVotingModal");
   if (modal && !modal.hidden) renderVotingModal();
   if (weeklyVotingState.winnerEmail) {
@@ -776,6 +787,16 @@ function handleVotingSnapshot(snapshot) {
 function bindWeeklyVoting() {
   if (!cloudEnabled) return;
   const schedule = getVotingSchedule();
+  if (!isVotingWeekEnabled(schedule)) {
+    if (activeVotingRef && activeVotingHandler) activeVotingRef.off("value", activeVotingHandler);
+    activeVotingWeekKey = "";
+    activeVotingRef = null;
+    activeVotingHandler = null;
+    weeklyVotingState = null;
+    closeVotingModal();
+    closeVotingResultModal(false);
+    return;
+  }
   if (schedule.weekKey === activeVotingWeekKey && activeVotingRef) {
     if (schedule.isOpen && !weeklyVotingState?.winnerEmail && !sessionStorage.getItem(`votingDismissed:${schedule.weekKey}`)) openVotingModal();
     finalizeWeeklyVoting(schedule).catch((error) => console.warn("Vote finalization failed", error));
