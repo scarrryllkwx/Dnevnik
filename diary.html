@@ -3,44 +3,73 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#110f10" />
     <title>Мой дневник</title>
-    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
-    <link rel="stylesheet" href="styles.css?v=20260630-29" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=3" />
+    <link rel="stylesheet" href="styles.css?v=20260725-17" />
   </head>
   <body class="diary-page">
-    <div class="aurora" aria-hidden="true">
-      <span class="aurora__blob blob--teal"></span>
-      <span class="aurora__blob blob--mint"></span>
-      <span class="aurora__blob blob--lav"></span>
-      <span class="aurora__blob blob--blue"></span>
-      <span class="aurora__grain"></span>
+    <div class="ambient" aria-hidden="true">
+      <div class="ambient__grid"></div>
+      <div class="ambient__beam ambient__beam--one"></div>
+      <div class="ambient__beam ambient__beam--two"></div>
+      <div class="ambient__orb"></div>
+      <div class="ambient__noise"></div>
+      <div class="cursor-glow"></div>
     </div>
-    <header class="topbar">
-      <a class="logo" href="diary.html" aria-label="Дневник">
-        <img class="logo-image" src="assets/logo.svg?v=20260630-29" alt="Дневник" />
+
+    <header class="topbar" data-animate="header">
+      <a class="brand" href="diary.html" aria-label="Коллеги — дневник">
+        <svg class="brand-mark" viewBox="0 0 44 44" aria-hidden="true">
+          <rect x="4" y="4" width="36" height="36" rx="12" />
+          <path d="m22 14-9 15h18L22 14Z" />
+          <circle cx="22" cy="14" r="3.2" /><circle cx="13" cy="29" r="3.2" /><circle cx="31" cy="29" r="3.2" />
+        </svg>
+        <span>КОЛЛЕГИ</span>
       </a>
       <div class="topbar-actions">
-        <button class="ghost-button" id="notifyButton" type="button" hidden>
-          <span class="notify-dot" aria-hidden="true"></span>Включить уведомления
+        <a class="nav-button is-accent" href="ranking.html">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21V11H3v10M14.5 21V3h-5v18M21 21V7h-5v14"/></svg>
+          <span>Рейтинг</span>
+        </a>
+        <button class="icon-button notify-button" id="notifyButton" type="button" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/><path d="M10 21h4"/></svg>
+          <span>Уведомления</span>
         </button>
-        <button class="ghost-button" id="logoutButton" type="button">Выйти</button>
+        <button class="icon-button" id="logoutButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/></svg>
+          <span>Выйти</span>
+        </button>
       </div>
     </header>
 
     <main class="diary-layout">
-      <section class="diary-hero" aria-labelledby="diary-title">
-        <p class="eyebrow" id="userLabel">Учебная неделя</p>
-        <h1 id="diary-title">Домашние задания и оценки</h1>
-      </section>
-
-      <section class="teacher-tools" id="teacherTools" aria-label="Панель учителя" hidden>
+      <section class="teacher-tools glass-panel" id="teacherTools" aria-label="Управление ролью учителя" hidden data-animate="panel">
+        <div class="tool-copy">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m6 10v6c3 3 9 3 12 0v-6M21 8v7"/></svg>
+          <div><strong>Роль учителя</strong><span>Передайте управление дневником другому участнику</span></div>
+        </div>
         <div class="teacher-transfer">
           <select id="transferTeacherSelect" aria-label="Новый учитель"></select>
-          <button class="ghost-button" id="transferTeacherButton" type="button">Передать роль</button>
+          <button class="secondary-button" id="transferTeacherButton" type="button">Передать роль</button>
+          <a class="secondary-button voting-demo-link" href="voting-demo.html">Демо голосования</a>
         </div>
       </section>
 
-      <section class="entry-composer" aria-label="Новая запись">
+      <section class="entry-composer glass-panel" aria-labelledby="composerTitle" data-animate="panel">
+        <div class="section-head compact-head">
+          <div>
+            <p class="section-index">01 / НОВАЯ ЗАПИСЬ</p>
+            <h2 id="composerTitle">Выдать задание</h2>
+          </div>
+          <svg class="section-icon section-icon--assignment" viewBox="0 0 48 48" aria-hidden="true">
+            <rect x="10" y="8" width="28" height="34" rx="6" />
+            <path d="M19 8V6h10v2M17 21h14M17 28h7m-7 7 3 3 10-11" />
+          </svg>
+        </div>
         <form id="entryForm" class="entry-form">
           <label class="student-field">
             <span>Ученик</span>
@@ -52,47 +81,92 @@
             <button class="date-trigger" id="assignmentDateButton" type="button" data-date-target="assignmentDateInput"></button>
           </label>
           <label class="deadline-field">
-            <span>Дедлайн</span>
+            <span>Время</span>
             <input id="deadlineInput" type="time" step="60" />
           </label>
           <label class="homework-field">
             <span>Домашнее задание</span>
-            <input id="homeworkInput" type="text" placeholder="Параграф, упражнение, проект..." required />
+            <input id="homeworkInput" type="text" placeholder="Например: параграф 12, упражнение 48" required />
           </label>
           <label class="comment-field">
             <span>Комментарий</span>
-            <input id="commentInput" type="text" placeholder="Можно оставить пустым" />
+            <input id="commentInput" type="text" placeholder="Дополнительная информация" />
           </label>
-          <button class="primary-button compact" id="submitEntryButton" type="submit">Выдать задание</button>
-          <button class="cancel-button" id="cancelEditButton" type="button" hidden>Отмена</button>
+          <div class="form-actions">
+            <button class="primary-button" id="submitEntryButton" type="submit">
+              <span>Выдать задание</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5"/></svg>
+            </button>
+            <button class="cancel-button" id="cancelEditButton" type="button" hidden>Отмена</button>
+          </div>
         </form>
       </section>
 
-      <section class="diary-table-wrap" aria-label="Записи дневника">
-        <table class="diary-table">
-          <thead>
-            <tr>
-              <th class="student-heading">Ученик</th>
-              <th class="issued-heading">Выдано</th>
-              <th class="homework-heading">Домашнее задание</th>
-              <th class="deadline-heading">Дедлайн</th>
-              <th class="grade-heading">Оценка</th>
-              <th class="action-heading"> </th>
-            </tr>
-          </thead>
-          <tbody id="entriesBody"></tbody>
-        </table>
-        <div class="empty-state" id="emptyState">
-          <strong>Пока пусто</strong>
-          <span>Добавьте первый предмет, задание и оценку.</span>
+      <section class="status-strip" aria-label="Личный статус и учитель недели" data-animate="panel">
+        <article class="status-card status-card--personal" id="personalStatusCard">
+          <div class="status-card__head">
+            <p class="section-index">МОЙ СТАТУС</p>
+          </div>
+          <div class="status-card__body">
+            <span class="status-avatar" id="personalStatusAvatar">—</span>
+            <div class="status-card__copy">
+              <strong id="personalRankValue">Нет данных</strong>
+              <span id="personalStatusMeta">Оценки пока не выставлены</span>
+            </div>
+            <div class="status-score"><strong id="personalAverageValue">0.00</strong><span>/ 5</span></div>
+          </div>
+        </article>
+
+        <article class="status-card status-card--teacher" id="teacherStatusCard">
+          <div class="status-card__head">
+            <p class="section-index">УЧИТЕЛЬ НЕДЕЛИ</p>
+            <svg class="status-role-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="m5 11 11-6 11 6-11 6-11-6Z"/><path d="M9 14v7c4 4 10 4 14 0v-7M27 11v9"/></svg>
+          </div>
+          <div class="status-card__body">
+            <span class="status-avatar status-avatar--teacher" id="teacherStatusAvatar">—</span>
+            <div class="status-card__copy">
+              <strong id="currentTeacherName">Не назначен</strong>
+              <span id="currentTeacherMeta">Роль обновляется автоматически</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="assignments-section glass-panel" aria-labelledby="assignmentsTitle" data-animate="panel">
+        <div class="section-head compact-head">
+          <div>
+            <p class="section-index">02 / ПРОГРЕСС</p>
+            <h2 id="assignmentsTitle">Задания и оценки</h2>
+          </div>
+        </div>
+        <div class="diary-table-wrap" aria-label="Записи дневника">
+          <table class="diary-table">
+            <thead>
+              <tr>
+                <th class="student-heading">Ученик</th>
+                <th class="issued-heading">Выдано</th>
+                <th class="homework-heading">Задание</th>
+                <th class="deadline-heading">Дедлайн</th>
+                <th class="grade-heading">Балл</th>
+                <th class="action-heading"><span class="visually-hidden">Действия</span></th>
+              </tr>
+            </thead>
+            <tbody id="entriesBody"></tbody>
+          </table>
+          <div class="empty-state" id="emptyState">
+            <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 12h28a6 6 0 0 1 6 6v34H18a6 6 0 0 1-6-6V18a6 6 0 0 1 6-6Z"/><path d="M20 24h24M20 33h18M20 42h12"/></svg>
+            <strong>Пока пусто</strong>
+            <span>Добавьте первое задание — оно появится здесь.</span>
+          </div>
         </div>
       </section>
     </main>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
     <script src="firebase-config.js?v=20260701-31"></script>
     <script src="accounts.js?v=20260701-33"></script>
-    <script src="app.js?v=20260630-30"></script>
+    <script src="app.js?v=20260725-16"></script>
   </body>
 </html>

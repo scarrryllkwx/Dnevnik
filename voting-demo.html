@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#110f10" />
+    <title>Демо голосования — Коллеги</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=3" />
+    <link rel="stylesheet" href="styles.css?v=20260725-17" />
+  </head>
+  <body class="voting-demo-page">
+    <div class="ambient" aria-hidden="true"><div class="ambient__grid"></div><div class="ambient__beam ambient__beam--one"></div><div class="ambient__beam ambient__beam--two"></div><div class="ambient__orb"></div><div class="ambient__noise"></div></div>
+
+    <header class="topbar">
+      <a class="brand" href="diary.html" aria-label="Коллеги — дневник"><svg class="brand-mark" viewBox="0 0 44 44" aria-hidden="true"><rect x="4" y="4" width="36" height="36" rx="12"/><path d="m22 14-9 15h18L22 14Z"/><circle cx="22" cy="14" r="3.2"/><circle cx="13" cy="29" r="3.2"/><circle cx="31" cy="29" r="3.2"/></svg><span>КОЛЛЕГИ</span></a>
+      <div class="demo-topbar-actions"><span class="demo-label">ДЕМО</span><a class="nav-button" href="diary.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 17-5-5 5-5M5 12h14"/></svg><span>В дневник</span></a></div>
+    </header>
+
+    <main class="diary-layout demo-diary-layout">
+      <section class="demo-diary-hero" data-animate="panel">
+        <p class="eyebrow"><span></span> Личный дневник</p>
+        <h1>Добро пожаловать,<br /><em>Фил.</em></h1>
+        <p>Это фон первоначальной страницы. Сразу после авторизации поверх него появляется голосование.</p>
+      </section>
+
+      <section class="status-strip" aria-label="Личный статус и учитель недели">
+        <article class="status-card status-card--personal">
+          <div class="status-card__head"><p class="section-index">МОЙ СТАТУС</p></div>
+          <div class="status-card__body"><span class="status-avatar">Ф</span><div class="status-card__copy"><strong>#2 в рейтинге</strong><span>7 заданий · средний балл 4.71</span></div><div class="status-score"><strong>4.71</strong><span>/ 5</span></div></div>
+        </article>
+        <article class="status-card status-card--teacher">
+          <div class="status-card__head"><p class="section-index">УЧИТЕЛЬ НЕДЕЛИ</p><svg class="status-role-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="m5 11 11-6 11 6-11 6-11-6Z"/><path d="M9 14v7c4 4 10 4 14 0v-7M27 11v9"/></svg></div>
+          <div class="status-card__body"><span class="status-avatar status-avatar--teacher">А</span><div class="status-card__copy"><strong>Арина</strong><span>Текущий учитель до завершения голосования</span></div></div>
+        </article>
+      </section>
+
+      <section class="glass-panel demo-background-panel">
+        <div><p class="section-index">ЗАДАНИЯ</p><h2>На этой неделе</h2></div>
+        <div class="demo-background-task"><span>01</span><div><strong>Подготовить отчёт</strong><small>Сегодня · до 18:00</small></div><i>4.8</i></div>
+        <div class="demo-background-task"><span>02</span><div><strong>Обновить презентацию</strong><small>Завтра · до 12:00</small></div><i>—</i></div>
+        <button class="primary-button demo-open-button" id="demoOpenButton" type="button"><span>Открыть голосование снова</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5"/></svg></button>
+      </section>
+    </main>
+
+    <div class="voting-overlay demo-voting-overlay" id="demoVotingOverlay">
+      <section class="voting-modal demo-live-modal" role="dialog" aria-modal="true" aria-labelledby="demoVotingTitle">
+        <div class="voting-modal__glow" aria-hidden="true"></div>
+        <div class="demo-vote-view" id="demoVoteView">
+          <header class="voting-modal__head">
+            <div><p class="section-index">ПОНЕДЕЛЬНИК · 09:00–11:00 МСК</p><h2 id="demoVotingTitle">Кто сегодня у доски?</h2><p>Выберите нового учителя недели.</p></div>
+            <button class="calendar-close" id="demoCloseButton" type="button" aria-label="Закрыть"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+          </header>
+          <div class="voting-progress"><div class="voting-progress__bar"><span id="demoProgressBar"></span></div><strong class="voting-progress__label" id="demoProgressLabel">0 из 6 проголосовали</strong></div>
+          <div class="voting-candidates" id="demoCandidates"></div>
+          <footer class="voting-modal__footer demo-modal-footer">
+            <span class="voting-selection-note" id="demoSelectionNote">Выберите кандидата</span>
+            <div class="demo-modal-actions"><button class="secondary-button" id="demoFinishButton" type="button">Наступило 11:00</button><button class="primary-button" id="demoSubmitButton" type="button" disabled><span>Отдать голос</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5"/></svg></button></div>
+          </footer>
+        </div>
+
+        <div class="demo-modal-result" id="demoResultView" hidden aria-live="polite">
+          <div class="demo-winner__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m11 8 6 12 7-12 7 12 6-12 2 25H9L11 8Z"/><path d="M10 38h28"/></svg></div>
+          <p class="section-index">ГОЛОСОВАНИЕ ЗАВЕРШЕНО</p>
+          <h2 id="demoWinnerName">Новый учитель</h2>
+          <p id="demoWinnerNote"></p>
+          <button class="primary-button" id="demoRestartButton" type="button"><span>Повторить демонстрацию</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2 5M20 5v6h-6"/></svg></button>
+        </div>
+      </section>
+    </div>
+
+    <div class="demo-toast" id="demoToast" hidden><span>✓</span><div><strong>Голос принят</strong><small>Окно закрылось, дневник снова доступен</small></div></div>
+
+    <script src="accounts.js?v=20260701-33"></script>
+    <script src="demo-voting.js?v=3"></script>
+  </body>
+</html>
