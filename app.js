@@ -28,9 +28,6 @@ const assignmentDateInput = document.querySelector("#assignmentDateInput");
 const deadlineInput = document.querySelector("#deadlineInput");
 const assignmentDateButton = document.querySelector("#assignmentDateButton");
 const commentInput = document.querySelector("#commentInput");
-const teacherTools = document.querySelector("#teacherTools");
-const transferTeacherSelect = document.querySelector("#transferTeacherSelect");
-const transferTeacherButton = document.querySelector("#transferTeacherButton");
 const rankingList = document.querySelector("#rankingList");
 const rankingRangeButton = document.querySelector("#rankingRangeButton");
 const rankingCalendar = document.querySelector("#rankingCalendar");
@@ -474,7 +471,6 @@ function enhanceCustomTimePicker(input) {
 
 function initCustomControls() {
   enhanceCustomSelect(studentSelect);
-  enhanceCustomSelect(transferTeacherSelect);
   enhanceCustomTimePicker(deadlineInput);
 
   document.addEventListener("click", (event) => {
@@ -1242,19 +1238,6 @@ function renderUserName() {
   }
 }
 
-function fillSelect(select, accounts, placeholder) {
-  if (!select) return;
-
-  select.innerHTML = `<option value="">${placeholder}</option>`;
-  accounts.forEach((account) => {
-    const option = document.createElement("option");
-    option.value = account.email;
-    option.textContent = account.name;
-    select.append(option);
-  });
-  refreshCustomSelect(select);
-}
-
 function fillStudentSelect() {
   if (!studentSelect) return;
 
@@ -1284,14 +1267,12 @@ function renderDiaryMode() {
   document.body.classList.toggle("student-mode", !teacher);
 
   if (composer) composer.hidden = !teacher;
-  if (teacherTools) teacherTools.hidden = !teacher;
   if (actionHeading) actionHeading.hidden = !teacher;
   if (studentHeading) studentHeading.hidden = !teacher;
   if (issuedHeading) issuedHeading.hidden = !teacher;
 
   if (teacher) {
     fillStudentSelect();
-    fillSelect(transferTeacherSelect, getStudents(), "Передать роль...");
     if (assignmentDateInput && !assignmentDateInput.value) {
       assignmentDateInput.value = getTodayIso();
     }
@@ -1744,17 +1725,6 @@ function handleInlineEditChange(event) {
   saveInlineEdit(input);
 }
 
-function transferTeacherRole() {
-  if (!isTeacher() || !transferTeacherSelect.value) return;
-
-  setTeacherEmail(transferTeacherSelect.value);
-  resetEntryForm();
-  renderDiaryMode();
-  renderUserName();
-  initCustomControls();
-  renderEntries();
-}
-
 async function sha256Hex(value) {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -1822,7 +1792,6 @@ if (entryForm) {
   cancelEditButton.addEventListener("click", () => {
     resetEntryForm();
   });
-  transferTeacherButton.addEventListener("click", transferTeacherRole);
   renderEntries();
 
   // Уведомления. В облачном режиме базовую отметку делает первый снимок данных (subscribeCloud).
