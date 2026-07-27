@@ -47,6 +47,17 @@
     </header>
 
     <main class="diary-layout">
+      <section class="teacher-tools glass-panel" id="teacherTools" aria-label="Передача роли учителя" hidden data-animate="panel">
+        <div class="tool-copy">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m6 10v6c3 3 9 3 12 0v-6M21 8v7"/></svg>
+          <div><strong>Передать роль учителя</strong><span>Выберите участника, который будет вести дневник</span></div>
+        </div>
+        <div class="teacher-transfer">
+          <select id="transferTeacherSelect" aria-label="Новый учитель"></select>
+          <button class="secondary-button" id="transferTeacherButton" type="button">Передать роль</button>
+        </div>
+      </section>
+
       <section class="entry-composer glass-panel" aria-labelledby="composerTitle" data-animate="panel">
         <div class="section-head compact-head">
           <div>

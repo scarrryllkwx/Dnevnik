@@ -28,6 +28,9 @@ const assignmentDateInput = document.querySelector("#assignmentDateInput");
 const deadlineInput = document.querySelector("#deadlineInput");
 const assignmentDateButton = document.querySelector("#assignmentDateButton");
 const commentInput = document.querySelector("#commentInput");
+const teacherTools = document.querySelector("#teacherTools");
+const transferTeacherSelect = document.querySelector("#transferTeacherSelect");
+const transferTeacherButton = document.querySelector("#transferTeacherButton");
 const rankingList = document.querySelector("#rankingList");
 const rankingRangeButton = document.querySelector("#rankingRangeButton");
 const rankingCalendar = document.querySelector("#rankingCalendar");
@@ -51,16 +54,6 @@ let rankingDraftEnd = "";
 let lastRankingSignature = "";
 const customSelectControls = new Map();
 const customTimeControls = new Map();
-const VOTING_ROOT = "teacherVotes";
-const VOTING_LAUNCH_WEEK_KEY = "2026-07-27";
-const VOTING_START_MINUTES = 9 * 60;
-const VOTING_END_MINUTES = 11 * 60;
-let activeVotingWeekKey = "";
-let activeVotingRef = null;
-let activeVotingHandler = null;
-let weeklyVotingState = null;
-let pendingVoteEmail = "";
-let votingScheduleTimer = null;
 
 const ALL_STUDENTS_VALUE = "__all_students__";
 const MONTH_NAMES = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
@@ -471,6 +464,7 @@ function enhanceCustomTimePicker(input) {
 
 function initCustomControls() {
   enhanceCustomSelect(studentSelect);
+  enhanceCustomSelect(transferTeacherSelect);
   enhanceCustomTimePicker(deadlineInput);
 
   document.addEventListener("click", (event) => {
@@ -479,341 +473,6 @@ function initCustomControls() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeCustomMenus();
   });
-}
-
-function getMoscowDateParts(date = new Date()) {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Moscow",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
-  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
-  return {
-    year: Number(parts.year),
-    month: Number(parts.month),
-    day: Number(parts.day),
-    hour: Number(parts.hour),
-    minute: Number(parts.minute),
-  };
-}
-
-function getVotingSchedule(date = new Date()) {
-  const moscow = getMoscowDateParts(date);
-  const moscowDate = new Date(Date.UTC(moscow.year, moscow.month - 1, moscow.day));
-  const mondayOffset = (moscowDate.getUTCDay() + 6) % 7;
-  const monday = new Date(moscowDate);
-  monday.setUTCDate(moscowDate.getUTCDate() - mondayOffset);
-  const weekKey = `${monday.getUTCFullYear()}-${String(monday.getUTCMonth() + 1).padStart(2, "0")}-${String(monday.getUTCDate()).padStart(2, "0")}`;
-  const currentMinutes = moscow.hour * 60 + moscow.minute;
-  const isMonday = mondayOffset === 0;
-  return {
-    weekKey,
-    isOpen: isMonday && currentMinutes >= VOTING_START_MINUTES && currentMinutes < VOTING_END_MINUTES,
-    isEnded: mondayOffset > 0 || (isMonday && currentMinutes >= VOTING_END_MINUTES),
-    startsAt: `${weekKey}T09:00:00+03:00`,
-    endsAt: `${weekKey}T11:00:00+03:00`,
-  };
-}
-
-function isVotingWeekEnabled(schedule) {
-  return Boolean(schedule?.weekKey && schedule.weekKey >= VOTING_LAUNCH_WEEK_KEY);
-}
-
-function safeFirebaseKey(value) {
-  return String(value || "").replace(/[.#$\[\]/]/g, "_");
-}
-
-function getVotingCounts(state = weeklyVotingState) {
-  const counts = new Map(ACCOUNTS.map((account) => [normalize(account.email), 0]));
-  Object.values(state?.votes || {}).forEach((vote) => {
-    const candidateEmail = normalize(vote?.candidateEmail || "");
-    if (counts.has(candidateEmail)) counts.set(candidateEmail, counts.get(candidateEmail) + 1);
-  });
-  return counts;
-}
-
-function getValidVoterCount(state = weeklyVotingState) {
-  const voters = new Set();
-  Object.values(state?.votes || {}).forEach((vote) => {
-    const voterEmail = normalize(vote?.voterEmail || "");
-    if (getAccountByEmail(voterEmail)) voters.add(voterEmail);
-  });
-  return voters.size;
-}
-
-function ensureVotingModal() {
-  let modal = document.querySelector("#weeklyVotingModal");
-  if (modal) return modal;
-
-  modal = document.createElement("div");
-  modal.id = "weeklyVotingModal";
-  modal.className = "voting-overlay";
-  modal.hidden = true;
-  modal.innerHTML = `
-    <section class="voting-modal" role="dialog" aria-modal="true" aria-labelledby="votingTitle">
-      <div class="voting-modal__glow" aria-hidden="true"></div>
-      <header class="voting-modal__head">
-        <div>
-          <p class="section-index">ПОНЕДЕЛЬНИК · 09:00–11:00 МСК</p>
-          <h2 id="votingTitle">Кто сегодня у доски?</h2>
-          <p>Выберите нового учителя недели.</p>
-        </div>
-        <button class="calendar-close" type="button" data-voting-action="close" aria-label="Закрыть"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
-      </header>
-      <div class="voting-progress"><div class="voting-progress__bar"><span></span></div><strong class="voting-progress__label">0 из 0 проголосовали</strong></div>
-      <div class="voting-candidates"></div>
-      <footer class="voting-modal__footer">
-        <span class="voting-selection-note">Выберите кандидата</span>
-        <button class="primary-button" type="button" data-voting-action="submit" disabled><span>Отдать голос</span><svg viewBox="0 0 24 24"><path d="M5 12h14M14 7l5 5-5 5"/></svg></button>
-      </footer>
-    </section>`;
-  document.body.append(modal);
-
-  modal.addEventListener("click", handleVotingModalClick);
-  return modal;
-}
-
-function getVotingResultSeenKey(weekKey) {
-  return `votingResultSeen:${weekKey}:${safeFirebaseKey(getCurrentEmail())}`;
-}
-
-function hasSeenVotingResult(weekKey) {
-  try {
-    return localStorage.getItem(getVotingResultSeenKey(weekKey)) === "true";
-  } catch {
-    return false;
-  }
-}
-
-function markVotingResultSeen(weekKey) {
-  try {
-    localStorage.setItem(getVotingResultSeenKey(weekKey), "true");
-  } catch {
-    // The announcement can still be closed when browser storage is unavailable.
-  }
-}
-
-function ensureVotingResultModal() {
-  let modal = document.querySelector("#weeklyVotingResultModal");
-  if (modal) return modal;
-
-  modal = document.createElement("div");
-  modal.id = "weeklyVotingResultModal";
-  modal.className = "voting-overlay voting-result-overlay";
-  modal.hidden = true;
-  modal.innerHTML = `
-    <section class="voting-result-modal" role="dialog" aria-modal="true" aria-labelledby="votingResultTitle">
-      <div class="voting-result-modal__glow" aria-hidden="true"></div>
-      <div class="voting-result-modal__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m11 8 6 12 7-12 7 12 6-12 2 25H9L11 8Z"/><path d="M10 38h28"/></svg></div>
-      <p class="section-index">ГОЛОСОВАНИЕ ЗАВЕРШЕНО</p>
-      <h2 id="votingResultTitle"></h2>
-      <p class="voting-result-modal__message"></p>
-      <button class="primary-button" type="button" data-voting-result-action="close"><span>Понятно</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5"/></svg></button>
-    </section>`;
-  document.body.append(modal);
-  modal.addEventListener("click", (event) => {
-    if (event.target.closest('[data-voting-result-action="close"]')) closeVotingResultModal(true);
-  });
-  return modal;
-}
-
-function showVotingResultModal(schedule) {
-  const winner = getAccountByEmail(weeklyVotingState?.winnerEmail || "");
-  if (!isVotingWeekEnabled(schedule) || !winner || hasSeenVotingResult(schedule.weekKey)) return;
-
-  const modal = ensureVotingResultModal();
-  const isWinner = normalize(winner.email) === normalize(getCurrentEmail());
-  modal.classList.toggle("is-personal-winner", isWinner);
-  modal.querySelector("#votingResultTitle").textContent = isWinner
-    ? "Поздравляем!"
-    : `${winner.name} — новый учитель`;
-  modal.querySelector(".voting-result-modal__message").innerHTML = isWinner
-    ? "Тебя выбрали <strong>УЧИТЕЛЕМ!</strong><br>На этой неделе дневник теперь ведёшь ты."
-    : `Следующий учитель недели — <strong>${escapeHtml(winner.name)}</strong>.<br>Права переданы автоматически.`;
-  modal.hidden = false;
-  document.body.classList.add("has-modal");
-  if (typeof gsap !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    gsap.fromTo(modal.querySelector(".voting-result-modal"), { autoAlpha: 0, y: 24, scale: .97 }, { autoAlpha: 1, y: 0, scale: 1, duration: .5, ease: "power3.out" });
-  }
-}
-
-function closeVotingResultModal(markSeen = false) {
-  const modal = document.querySelector("#weeklyVotingResultModal");
-  if (markSeen) markVotingResultSeen(getVotingSchedule().weekKey);
-  if (modal) modal.hidden = true;
-  document.body.classList.remove("has-modal");
-}
-
-function renderVotingModal() {
-  const modal = ensureVotingModal();
-  const counts = getVotingCounts();
-  const votes = weeklyVotingState?.votes || {};
-  const currentVote = votes[safeFirebaseKey(getCurrentEmail())]?.candidateEmail || "";
-  if (!pendingVoteEmail) pendingVoteEmail = currentVote;
-  const votedCount = Object.keys(votes).length;
-  const totalVoters = ACCOUNTS.length;
-
-  modal.querySelector(".voting-candidates").innerHTML = ACCOUNTS.map((candidate) => {
-    const selected = normalize(candidate.email) === normalize(pendingVoteEmail || "");
-    const votesForCandidate = counts.get(normalize(candidate.email)) || 0;
-    return `
-      <button class="voting-candidate${selected ? " is-selected" : ""}" type="button" data-voting-candidate="${escapeHtml(candidate.email)}">
-        <span class="voting-candidate__avatar">${escapeHtml(getStudentInitials(candidate.name))}</span>
-        <span class="voting-candidate__copy"><strong>${escapeHtml(candidate.name)}</strong><small>${votesForCandidate} ${votesForCandidate === 1 ? "голос" : votesForCandidate >= 2 && votesForCandidate <= 4 ? "голоса" : "голосов"}</small></span>
-        <span class="voting-candidate__check"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12 4 4 8-9"/></svg></span>
-      </button>`;
-  }).join("");
-
-  modal.querySelector(".voting-progress__bar span").style.width = `${totalVoters ? Math.min(100, (votedCount / totalVoters) * 100) : 0}%`;
-  modal.querySelector(".voting-progress__label").textContent = `${votedCount} из ${totalVoters} проголосовали`;
-  const selectedAccount = getAccountByEmail(pendingVoteEmail);
-  modal.querySelector(".voting-selection-note").textContent = selectedAccount ? `Ваш выбор: ${selectedAccount.name}` : "Выберите кандидата";
-  modal.querySelector('[data-voting-action="submit"]').disabled = !selectedAccount;
-}
-
-function openVotingModal() {
-  const modal = ensureVotingModal();
-  renderVotingModal();
-  modal.hidden = false;
-  document.body.classList.add("has-modal");
-  if (typeof gsap !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    gsap.fromTo(modal.querySelector(".voting-modal"), { autoAlpha: 0, y: 26, scale: .97 }, { autoAlpha: 1, y: 0, scale: 1, duration: .48, ease: "power3.out" });
-    gsap.fromTo(modal.querySelectorAll(".voting-candidate"), { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: .4, stagger: .045, delay: .12, ease: "power2.out" });
-  }
-}
-
-function closeVotingModal() {
-  const modal = document.querySelector("#weeklyVotingModal");
-  if (modal) modal.hidden = true;
-  document.body.classList.remove("has-modal");
-}
-
-async function submitWeeklyVote(candidateEmail) {
-  if (!cloudEnabled || !activeVotingRef || !getVotingSchedule().isOpen) return;
-  const currentEmail = getCurrentEmail();
-  if (!currentEmail || !getAccountByEmail(candidateEmail)) return;
-  await activeVotingRef.child("votes").child(safeFirebaseKey(currentEmail)).set({
-    voterEmail: currentEmail,
-    candidateEmail,
-    votedAt: firebase.database.ServerValue.TIMESTAMP,
-  });
-  sessionStorage.setItem(`votingDismissed:${getVotingSchedule().weekKey}`, "true");
-  closeVotingModal();
-}
-
-function handleVotingModalClick(event) {
-  const candidateButton = event.target.closest("[data-voting-candidate]");
-  const action = event.target.closest("[data-voting-action]")?.dataset.votingAction;
-  if (candidateButton) {
-    pendingVoteEmail = candidateButton.dataset.votingCandidate;
-    renderVotingModal();
-    return;
-  }
-  if (action === "close") {
-    sessionStorage.setItem(`votingDismissed:${getVotingSchedule().weekKey}`, "true");
-    closeVotingModal();
-  }
-  if (action === "submit" && pendingVoteEmail) submitWeeklyVote(pendingVoteEmail).catch((error) => console.warn("Vote submit failed", error));
-}
-
-function chooseRandomWinner(state) {
-  const counts = getVotingCounts(state);
-  const highest = Math.max(0, ...counts.values());
-  const leaders = highest === 0
-    ? [...ACCOUNTS]
-    : ACCOUNTS.filter((account) => counts.get(normalize(account.email)) === highest);
-  if (!leaders.length) return "";
-  const randomIndex = typeof crypto !== "undefined" && crypto.getRandomValues
-    ? crypto.getRandomValues(new Uint32Array(1))[0] % leaders.length
-    : Math.floor(Math.random() * leaders.length);
-  return leaders[randomIndex].email;
-}
-
-async function finalizeWeeklyVoting(schedule) {
-  if (!isVotingWeekEnabled(schedule)) return;
-  const allVotesReceived = getValidVoterCount(weeklyVotingState) >= ACCOUNTS.length;
-  const finalizedEarly = schedule.isOpen && allVotesReceived;
-  if (!cloudEnabled || !activeVotingRef || (!schedule.isEnded && !finalizedEarly) || weeklyVotingState?.winnerEmail) return;
-  const proposedWinner = chooseRandomWinner(weeklyVotingState);
-  if (!proposedWinner) return;
-
-  const result = await activeVotingRef.transaction((state) => {
-    if (!state) state = {};
-    if (state.winnerEmail) return state;
-    state.winnerEmail = proposedWinner;
-    state.finalizedAt = firebase.database.ServerValue.TIMESTAMP;
-    state.finalizedReason = finalizedEarly ? "all-voted" : "deadline";
-    return state;
-  });
-  const winnerEmail = result.snapshot.val()?.winnerEmail;
-  if (winnerEmail && getAccountByEmail(winnerEmail)) {
-    await firebaseDb.ref("teacherEmail").set(winnerEmail);
-  }
-}
-
-function handleVotingSnapshot(snapshot) {
-  weeklyVotingState = snapshot.val() || {};
-  const schedule = getVotingSchedule();
-  if (!isVotingWeekEnabled(schedule)) {
-    closeVotingModal();
-    closeVotingResultModal(false);
-    return;
-  }
-  const modal = document.querySelector("#weeklyVotingModal");
-  if (modal && !modal.hidden) renderVotingModal();
-  if (weeklyVotingState.winnerEmail) {
-    closeVotingModal();
-    showVotingResultModal(schedule);
-    return;
-  }
-  if (schedule.isOpen) {
-    const currentVote = weeklyVotingState.votes?.[safeFirebaseKey(getCurrentEmail())]?.candidateEmail || "";
-    pendingVoteEmail = currentVote;
-    if (!sessionStorage.getItem(`votingDismissed:${schedule.weekKey}`)) openVotingModal();
-  } else {
-    closeVotingModal();
-  }
-  finalizeWeeklyVoting(schedule).catch((error) => console.warn("Vote finalization failed", error));
-}
-
-function bindWeeklyVoting() {
-  if (!cloudEnabled) return;
-  const schedule = getVotingSchedule();
-  if (!isVotingWeekEnabled(schedule)) {
-    if (activeVotingRef && activeVotingHandler) activeVotingRef.off("value", activeVotingHandler);
-    activeVotingWeekKey = "";
-    activeVotingRef = null;
-    activeVotingHandler = null;
-    weeklyVotingState = null;
-    closeVotingModal();
-    closeVotingResultModal(false);
-    return;
-  }
-  if (schedule.weekKey === activeVotingWeekKey && activeVotingRef) {
-    if (schedule.isOpen && !weeklyVotingState?.winnerEmail && !sessionStorage.getItem(`votingDismissed:${schedule.weekKey}`)) openVotingModal();
-    finalizeWeeklyVoting(schedule).catch((error) => console.warn("Vote finalization failed", error));
-    return;
-  }
-
-  if (activeVotingRef && activeVotingHandler) activeVotingRef.off("value", activeVotingHandler);
-  activeVotingWeekKey = schedule.weekKey;
-  activeVotingRef = firebaseDb.ref(`${VOTING_ROOT}/${schedule.weekKey}`);
-  activeVotingHandler = handleVotingSnapshot;
-  activeVotingRef.on("value", activeVotingHandler);
-  activeVotingRef.update({ startsAt: schedule.startsAt, endsAt: schedule.endsAt }).catch((error) => console.warn("Vote schedule init failed", error));
-}
-
-function initWeeklyVoting() {
-  if (!cloudEnabled || !getCurrentEmail()) return;
-  ensureVotingModal();
-  ensureVotingResultModal();
-  bindWeeklyVoting();
-  if (votingScheduleTimer) clearInterval(votingScheduleTimer);
-  votingScheduleTimer = setInterval(bindWeeklyVoting, 30_000);
 }
 
 function ensureCalendar() {
@@ -1238,6 +897,19 @@ function renderUserName() {
   }
 }
 
+function fillSelect(select, accounts, placeholder) {
+  if (!select) return;
+
+  select.innerHTML = `<option value="">${placeholder}</option>`;
+  accounts.forEach((account) => {
+    const option = document.createElement("option");
+    option.value = account.email;
+    option.textContent = account.name;
+    select.append(option);
+  });
+  refreshCustomSelect(select);
+}
+
 function fillStudentSelect() {
   if (!studentSelect) return;
 
@@ -1267,12 +939,14 @@ function renderDiaryMode() {
   document.body.classList.toggle("student-mode", !teacher);
 
   if (composer) composer.hidden = !teacher;
+  if (teacherTools) teacherTools.hidden = !teacher;
   if (actionHeading) actionHeading.hidden = !teacher;
   if (studentHeading) studentHeading.hidden = !teacher;
   if (issuedHeading) issuedHeading.hidden = !teacher;
 
   if (teacher) {
     fillStudentSelect();
+    fillSelect(transferTeacherSelect, getStudents(), "Передать роль...");
     if (assignmentDateInput && !assignmentDateInput.value) {
       assignmentDateInput.value = getTodayIso();
     }
@@ -1725,6 +1399,16 @@ function handleInlineEditChange(event) {
   saveInlineEdit(input);
 }
 
+function transferTeacherRole() {
+  if (!isTeacher() || !transferTeacherSelect?.value) return;
+
+  setTeacherEmail(transferTeacherSelect.value);
+  resetEntryForm();
+  renderDiaryMode();
+  renderUserName();
+  renderEntries();
+}
+
 async function sha256Hex(value) {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -1774,7 +1458,6 @@ if (entryForm) {
   const usingCloud = initCloud();
   if (usingCloud) {
     subscribeCloud();
-    initWeeklyVoting();
   }
 
   renderDiaryMode();
@@ -1792,6 +1475,7 @@ if (entryForm) {
   cancelEditButton.addEventListener("click", () => {
     resetEntryForm();
   });
+  transferTeacherButton.addEventListener("click", transferTeacherRole);
   renderEntries();
 
   // Уведомления. В облачном режиме базовую отметку делает первый снимок данных (subscribeCloud).
@@ -1819,7 +1503,6 @@ if (rankingList && !entryForm) {
   const rankingUsingCloud = initCloud();
   if (rankingUsingCloud) {
     subscribeCloud();
-    initWeeklyVoting();
   }
   renderUserName();
   renderRanking();
